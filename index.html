@@ -15,13 +15,12 @@
   </head>
   <body>
     <div id="map" class="map"></div>
-    <div id="info">No countries selected</div>
+    <div id="info">No coordinates selected</div>
     <script>
       var vectorSource = new ol.source.Vector({
         url: 'https://openlayers.org/en/v4.6.4/examples/data/geojson/countries.geojson',
         format: new ol.format.GeoJSON()
       });
-
 
       var map = new ol.Map({
         layers: [
@@ -56,6 +55,12 @@
         // features that intersect the box are added to the collection of
         // selected features
         var extent = dragBox.getGeometry().getExtent();
+        var coors = dragBox.getGeometry().getCoordinates();
+        var arr = coors[0];
+        infoBox.innerHTML = "";
+        for (var i = 0; i < arr.length; i++) {
+          infoBox.innerHTML += "[" + arr[i][0] + "," + arr[i][1] + "] <br>";
+        }
         vectorSource.forEachFeatureIntersectingExtent(extent, function(feature) {
           selectedFeatures.push(feature);
         });
@@ -73,9 +78,9 @@
           return feature.get('name');
         });
         if (names.length > 0) {
-          infoBox.innerHTML = names.join(', ');
+          //infoBox.innerHTML = names.join(', ');
         } else {
-          infoBox.innerHTML = 'No countries selected';
+          //infoBox.innerHTML = 'No countries selected';
         }
       });
     </script>
