@@ -84,14 +84,10 @@
             geometryFunction: geometryFunction
           });
 
-          draw.on('drawend', function() {
-            // Get the array of features
-            var features = vector.getSource().getFeatures();
+          draw.on('drawend', function(e2) {
+            var feature = e2.feature;
 
-            // Go through this array and get coordinates of their geometry.
-            if (features.length != 0) {
-              console.log(features[features.length-1].getGeometry().getCoordinates());
-            };
+            console.log(feature.getGeometry().getCoordinates());
           })
 
           map.addInteraction(draw);
