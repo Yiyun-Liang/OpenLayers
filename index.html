@@ -6,83 +6,109 @@
     <!-- The line below is only needed for old environments like Internet Explorer and Android 4.x -->
     <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
     <script src="https://openlayers.org/en/v4.6.4/build/ol.js"></script>
-    <style>
-      .ol-dragbox {
-        background-color: rgba(255,255,255,0.4);
-        border-color: rgba(100,150,0,1);
-      }
-    </style>
   </head>
   <body>
     <div id="map" class="map"></div>
-    <div id="info">No coordinates selected</div>
+    <form class="form-inline">
+      <label>Geometry type &nbsp;</label>
+      <select id="type">
+        <option value="Box">Box</option>
+        <option value="Star">Star</option>
+        <option value="Polygon">Polygon</option>
+        <option value="Circle">Circle</option>
+        <option value="None">None</option>
+      </select>
+    </form>
     <script>
-      var vectorSource = new ol.source.Vector({
-        url: 'https://openlayers.org/en/v4.6.4/examples/data/geojson/countries.geojson',
-        format: new ol.format.GeoJSON()
+      var raster = new ol.layer.Tile({
+        source: new ol.source.OSM()
+      });
+
+      var source = new ol.source.Vector({wrapX: false});
+
+      var vector = new ol.layer.Vector({
+        source: source
       });
 
       var map = new ol.Map({
-        layers: [
-          new ol.layer.Tile({
-            source: new ol.source.OSM()
-          }),
-          new ol.layer.Vector({
-            source: vectorSource
-          })
-        ],
+        layers: [raster, vector],
         target: 'map',
         view: new ol.View({
-          center: [0, 0],
-          zoom: 2
+          center: [-11000000, 4600000],
+          zoom: 4
         })
       });
 
-      // a normal select interaction to handle click
-      var select = new ol.interaction.Select();
-      map.addInteraction(select);
+      var typeSelect = document.getElementById('type');
 
-      var selectedFeatures = select.getFeatures();
+      var draw; // global so we can remove it later
+      function addInteraction() {
+        var value = typeSelect.value;
 
-      // a DragBox interaction used to select features by drawing boxes
-      var dragBox = new ol.interaction.DragBox({
-        condition: ol.events.condition.platformModifierKeyOnly
-      });
+        if (value !== 'None') {
+          if (value === 'Box') {
+            value = 'Circle';
+            geometryFunction = ol.interaction.Draw.createBox();
+          } else if (value === 'Star') {
+            value = 'Circle';
+            geometryFunction = function(coordinates, geometry) {
+              if (!geometry) {
+                geometry = new ol.geom.Polygon(null);
+              }
+              var center = coordinates[0];
+              var last = coordinates[1];
+              var dx = center[0] - last[0];
+              var dy = center[1] - last[1];
+              var radius = Math.sqrt(dx * dx + dy * dy);
+              var rotation = Math.atan2(dy, dx);
+              var newCoordinates = [];
+              var numPoints = 12;
+              for (var i = 0; i < numPoints; ++i) {
+                var angle = rotation + i * 2 * Math.PI / numPoints;
+                var fraction = i % 2 === 0 ? 1 : 0.5;
+                var offsetX = radius * fraction * Math.cos(angle);
+                var offsetY = radius * fraction * Math.sin(angle);
+                newCoordinates.push([center[0] + offsetX, center[1] + offsetY]);
+              }
+              newCoordinates.push(newCoordinates[0].slice());
+              geometry.setCoordinates([newCoordinates]);
+              return geometry;
+            };
+          } else {
+            geometryFunction = null;
+          }
 
-      map.addInteraction(dragBox);
+          draw = new ol.interaction.Draw({
+            source: source,
+            type: value,
+            geometryFunction: geometryFunction
+          });
 
-      dragBox.on('boxend', function() {
-        // features that intersect the box are added to the collection of
-        // selected features
-        var extent = dragBox.getGeometry().getExtent();
-        var coors = dragBox.getGeometry().getCoordinates();
-        var arr = coors[0];
-        infoBox.innerHTML = "";
-        for (var i = 0; i < arr.length; i++) {
-          infoBox.innerHTML += "[" + arr[i][0] + "," + arr[i][1] + "] <br>";
+          draw.on('drawend', function() {
+            // Get the array of features
+            var features = vector.getSource().getFeatures();
+
+            // Go through this array and get coordinates of their geometry.
+            if (features.length != 0) {
+              console.log(features[features.length-1].getGeometry().getCoordinates());
+            };
+          })
+
+          map.addInteraction(draw);
         }
-        vectorSource.forEachFeatureIntersectingExtent(extent, function(feature) {
-          selectedFeatures.push(feature);
-        });
-      });
+      }
 
-      // clear selection when drawing a new box and when clicking on the map
-      dragBox.on('boxstart', function() {
-        selectedFeatures.clear();
-      });
+      /**
+       * Handle change event.
+       */
+      typeSelect.onchange = function() {
+        map.removeInteraction(draw);
+        addInteraction();
+      };
 
-      var infoBox = document.getElementById('info');
+      addInteraction();
 
-      selectedFeatures.on(['add', 'remove'], function() {
-        var names = selectedFeatures.getArray().map(function(feature) {
-          return feature.get('name');
-        });
-        if (names.length > 0) {
-          //infoBox.innerHTML = names.join(', ');
-        } else {
-          //infoBox.innerHTML = 'No countries selected';
-        }
-      });
+
     </script>
   </body>
 </html>
