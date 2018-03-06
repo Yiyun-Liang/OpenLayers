@@ -44,6 +44,7 @@
       var draw; // global so we can remove it later
       function addInteraction() {
         var value = typeSelect.value;
+        var true_value = typeSelect.value;
 
         if (value !== 'None') {
           if (value === 'Box') {
@@ -84,11 +85,20 @@
             geometryFunction: geometryFunction
           });
 
-          draw.on('drawend', function(e2) {
-            var feature = e2.feature;
+          if (true_value === 'Circle') {
+            draw.on('drawend', function(e2) {
+              var geometry = e2.feature.getGeometry();
+              var radius = geometry.getRadius();
+              var center = geometry.getCenter();
+              console.log([radius, center]);
+            })
+          } else {
+            draw.on('drawend', function(e2) {
+              var feature = e2.feature;
 
-            console.log(feature.getGeometry().getCoordinates());
-          })
+              console.log(feature.getGeometry().getCoordinates());
+            })
+          }
 
           map.addInteraction(draw);
         }
