@@ -90,13 +90,20 @@
               var geometry = e2.feature.getGeometry();
               var radius = geometry.getRadius();
               var center = geometry.getCenter();
-              console.log([radius, center]);
+              console.log([radius, ol.coordinate.toStringHDMS(center)]);
             })
           } else {
             draw.on('drawend', function(e2) {
               var feature = e2.feature;
+              var coors = feature.getGeometry().getCoordinates()[0];
 
-              console.log(feature.getGeometry().getCoordinates());
+              var string = "[";
+              for (var i = 0; i < coors.length; i++) {
+                string += (ol.coordinate.toStringHDMS(coors[i]));
+                string += ", ";
+              }
+              string += "]";
+              console.log(string);
             })
           }
 
